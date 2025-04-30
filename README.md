@@ -21,7 +21,7 @@ A Flask-based web application that generates images using fal.ai's API. The appl
 
 1. Clone the repository:
 ```bash
-git clone <your-repo-url>
+git clone git@github.com:rpriscu/ai-image-generator-poc.git
 cd ai-image-generator-poc
 ```
 
