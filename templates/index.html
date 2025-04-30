@@ -3,119 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Image Generator</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <style>
-        .image-container {
-            min-height: 300px;
-            background-color: #f8f9fa;
-            border: 2px dashed #dee2e6;
-            border-radius: 8px;
-            padding: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-top: 1rem;
-            position: relative;
-        }
-
-        #generatedImage {
-            max-width: 100%;
-            max-height: 600px;
-            width: auto;
-            height: auto;
-            object-fit: contain;
-            border-radius: 4px;
-            display: none;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        #result:not(.hidden) #generatedImage {
-            display: block;
-        }
-
-        .loading {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-
-        button:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-
-        #result {
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-        }
-
-        #result:not(.hidden) {
-            opacity: 1;
-        }
-    </style>
+    <title>Zemingo AI Image Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">AI Image Generator</h1>
-        
-        <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6">
-            <form id="generateForm" class="space-y-4">
-                <div>
-                    <label for="prompt" class="block text-sm font-medium text-gray-700">Prompt</label>
-                    <textarea id="prompt" name="prompt" rows="3" 
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        placeholder="Describe the image you want to generate..." required></textarea>
-                </div>
+<body>
+    <header>
+        <div class="logo-container">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='images/ZemingoLogo.png') }}" alt="Zemingo Logo" class="logo-img">
+            </div>
+            <div class="app-title">Advanced Image Generator</div>
+        </div>
+        <div class="beta-badge">Beta</div>
+    </header>
 
-                <div>
-                    <label for="model" class="block text-sm font-medium text-gray-700">Model</label>
-                    <select id="model" name="model" 
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+    <main>
+        <div class="prompt-container">
+            <div class="input-wrapper">
+                <input type="text" id="prompt" name="prompt" placeholder="Enter your prompt" required>
+            </div>
+            <div class="controls">
+                <div class="model-select">
+                    <select id="model" name="model" required>
                         {% for model_id, model in models.items() %}
-                        <option value="{{ model_id }}" data-type="{{ model.type }}" data-description="{{ model.description }}">{{ model.name }}</option>
+                        <option value="{{ model_id }}" data-type="{{ model.type }}" data-description="{{ model.description }}" {% if model_id == 'flux' %}selected{% endif %}>{{ model.name }}</option>
                         {% endfor %}
                     </select>
-                    <p id="modelDescription" class="mt-1 text-sm text-gray-500"></p>
+                    <div class="select-arrow"></div>
                 </div>
+                <button id="generateBtn" class="generate-btn">Generate</button>
+            </div>
+            <div id="imageUploadContainer" class="upload-container hidden">
+                <label for="image" class="upload-label">Upload Reference Image</label>
+                <input type="file" id="image" name="image" accept="image/*">
+            </div>
+            <p id="modelDescription" class="model-description"></p>
+        </div>
 
-                <div id="imageUploadContainer" class="hidden">
-                    <label for="image" class="block text-sm font-medium text-gray-700">Reference Image</label>
-                    <input type="file" id="image" name="image" accept="image/*"
-                        class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-                    <p class="mt-1 text-sm text-gray-500">Optional for text-to-image models, required for image-to-image models</p>
-                </div>
+        <div class="loading-indicator hidden">
+            <div class="spinner"></div>
+            <p>Generating images...</p>
+        </div>
 
-                <button type="submit" 
-                    class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    Generate Image
-                </button>
-            </form>
+        <div id="errorContainer" class="error-container hidden">
+            <p id="errorMessage"></p>
+        </div>
 
-            <div id="result" class="mt-8 hidden">
-                <h2 class="text-xl font-semibold mb-4">Generated Image</h2>
-                <div class="image-container">
-                    <img id="generatedImage" alt="Generated image">
+        <div class="images-grid">
+            <div class="image-card" id="imageCard1">
+                <div class="image-placeholder">
+                    <div class="placeholder-effect hidden"></div>
+                    <img id="generatedImage1" class="hidden" alt="Generated image 1">
+                    <button class="download-btn hidden" data-index="0">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
-
-            <div id="error" class="mt-4 hidden">
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                    <span class="block sm:inline" id="errorMessage"></span>
+            <div class="image-card" id="imageCard2">
+                <div class="image-placeholder">
+                    <div class="placeholder-effect hidden"></div>
+                    <img id="generatedImage2" class="hidden" alt="Generated image 2">
+                    <button class="download-btn hidden" data-index="1">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="image-card" id="imageCard3">
+                <div class="image-placeholder">
+                    <div class="placeholder-effect hidden"></div>
+                    <img id="generatedImage3" class="hidden" alt="Generated image 3">
+                    <button class="download-btn hidden" data-index="2">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="image-card" id="imageCard4">
+                <div class="image-placeholder">
+                    <div class="placeholder-effect hidden"></div>
+                    <img id="generatedImage4" class="hidden" alt="Generated image 4">
+                    <button class="download-btn hidden" data-index="3">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const form = document.getElementById('generateForm');
+            const promptInput = document.getElementById('prompt');
             const modelSelect = document.getElementById('model');
+            const generateBtn = document.getElementById('generateBtn');
             const imageUploadContainer = document.getElementById('imageUploadContainer');
             const modelDescription = document.getElementById('modelDescription');
-            const resultContainer = document.getElementById('result');
-            const generatedImage = document.getElementById('generatedImage');
-            const errorContainer = document.getElementById('error');
+            const errorContainer = document.getElementById('errorContainer');
             const errorMessage = document.getElementById('errorMessage');
+            const loadingIndicator = document.querySelector('.loading-indicator');
+            
+            // Image elements
+            const imageElements = [
+                document.getElementById('generatedImage1'),
+                document.getElementById('generatedImage2'),
+                document.getElementById('generatedImage3'),
+                document.getElementById('generatedImage4')
+            ];
+            
+            // Placeholder effects
+            const placeholderEffects = document.querySelectorAll('.placeholder-effect');
+            
+            // Download buttons
+            const downloadButtons = document.querySelectorAll('.download-btn');
+            
+            // Track generated image URLs
+            let generatedImageUrls = [];
+
+            // Trigger change event on model select to initialize UI based on selected model
+            modelSelect.dispatchEvent(new Event('change'));
 
             // Show/hide image upload based on model type
             modelSelect.addEventListener('change', function() {
@@ -133,68 +147,140 @@
                 const imageInput = document.getElementById('image');
                 imageInput.required = modelType === 'image-to-image';
             });
+            
+            // Handle download button clicks
+            downloadButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const index = parseInt(this.getAttribute('data-index'));
+                    if (generatedImageUrls[index]) {
+                        downloadImage(generatedImageUrls[index], `generated-image-${index + 1}.png`);
+                    }
+                });
+            });
+            
+            // Function to download an image
+            function downloadImage(url, filename) {
+                fetch(url)
+                    .then(response => response.blob())
+                    .then(blob => {
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = filename;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    })
+                    .catch(error => {
+                        console.error('Error downloading image:', error);
+                    });
+            }
 
-            // Trigger change event to set initial state
-            modelSelect.dispatchEvent(new Event('change'));
+            // Handle form submission
+            generateBtn.addEventListener('click', async function() {
+                if (!promptInput.value.trim()) {
+                    errorMessage.textContent = "Please enter a prompt";
+                    errorContainer.classList.remove('hidden');
+                    return;
+                }
 
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
+                if (!modelSelect.value) {
+                    errorMessage.textContent = "Please select a model";
+                    errorContainer.classList.remove('hidden');
+                    return;
+                }
+
+                const imageInput = document.getElementById('image');
+                const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+                const modelType = selectedOption.dataset.type;
                 
-                // Show loading state
-                const button = form.querySelector('button[type="submit"]');
-                const originalButtonText = button.textContent;
-                button.textContent = 'Generating...';
-                button.disabled = true;
+                if ((modelType === 'image-to-image' || modelType === 'hybrid') && 
+                    imageInput.required && !imageInput.files.length) {
+                    errorMessage.textContent = "Please upload a reference image";
+                    errorContainer.classList.remove('hidden');
+                    return;
+                }
 
-                const resultContainer = document.getElementById('result');
-                const errorContainer = document.getElementById('error');
-                const errorMessage = document.getElementById('errorMessage');
-                const generatedImage = document.getElementById('generatedImage');
+                // Hide error if any
+                errorContainer.classList.add('hidden');
+                
+                // Reset previous images
+                imageElements.forEach(img => {
+                    img.classList.add('hidden');
+                    img.src = '';
+                });
+                
+                // Hide download buttons
+                downloadButtons.forEach(btn => btn.classList.add('hidden'));
+                
+                // Show loading effects
+                placeholderEffects.forEach(effect => effect.classList.remove('hidden'));
+                
+                // Hide main loading indicator and disable generate button
+                loadingIndicator.classList.add('hidden');
+                generateBtn.disabled = true;
+                
+                // Reset generated image URLs
+                generatedImageUrls = [];
                 
                 try {
-                    const formData = new FormData(form);
+                    const formData = new FormData();
+                    formData.append('prompt', promptInput.value);
+                    formData.append('model', modelSelect.value);
+                    formData.append('num_images', '4');  // Request 4 images
+                    
+                    if (imageInput.files.length > 0) {
+                        formData.append('image', imageInput.files[0]);
+                    }
+                    
                     const response = await fetch('/api/generate', {
                         method: 'POST',
                         body: formData
                     });
 
                     const data = await response.json();
-                    console.log('API Response:', data);
-
+                    
                     if (!response.ok) {
                         throw new Error(data.error || 'Failed to generate image');
                     }
 
-                    if (!data.image_url) {
-                        throw new Error('No image URL in response');
+                    if (!data.image_urls || data.image_urls.length === 0) {
+                        throw new Error('No images received from the server');
                     }
 
-                    // Clear previous image
-                    generatedImage.src = '';
+                    // Store generated image URLs
+                    generatedImageUrls = data.image_urls;
                     
-                    // Set up image loading
-                    generatedImage.onload = function() {
-                        resultContainer.classList.remove('hidden');
-                        errorContainer.classList.add('hidden');
-                        generatedImage.style.display = 'block';
-                    };
-
-                    generatedImage.onerror = function() {
-                        throw new Error('Failed to load the generated image');
-                    };
-
-                    // Set the new image URL
-                    generatedImage.src = data.image_url;
+                    // Display the received images in the grid
+                    imageElements.forEach((img, index) => {
+                        if (index < generatedImageUrls.length) {
+                            img.src = generatedImageUrls[index];
+                            img.onload = function() {
+                                // Hide placeholder effect for this image
+                                placeholderEffects[index].classList.add('hidden');
+                                // Show the image and download button
+                                img.classList.remove('hidden');
+                                downloadButtons[index].classList.remove('hidden');
+                                img.parentElement.classList.add('loaded');
+                            };
+                            img.onerror = function() {
+                                // Hide placeholder effect if image fails to load
+                                placeholderEffects[index].classList.add('hidden');
+                                console.error('Failed to load image');
+                            };
+                        }
+                    });
 
                 } catch (error) {
                     console.error('Error:', error);
                     errorMessage.textContent = error.message;
                     errorContainer.classList.remove('hidden');
-                    resultContainer.classList.add('hidden');
+                    
+                    // Hide all placeholder effects
+                    placeholderEffects.forEach(effect => effect.classList.add('hidden'));
                 } finally {
-                    // Reset button state
-                    button.textContent = originalButtonText;
-                    button.disabled = false;
+                    // Enable generate button
+                    generateBtn.disabled = false;
                 }
             });
         });

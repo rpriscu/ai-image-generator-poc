@@ -33,22 +33,12 @@ AVAILABLE_MODELS = {
     'stable_diffusion': {
         'name': 'Stable Diffusion V3',
         'endpoint': 'fal-ai/stable-diffusion-v3-medium',
-        'type': 'hybrid',
-        'description': 'Supports both text-to-image and image-to-image. When using image-to-image, both prompt and image are required.',
+        'type': 'text-to-image',
+        'description': 'Creates detailed images with high fidelity.',
         'params': {
             'num_inference_steps': 30,
             'guidance_scale': 7.5
         }
-    },
-    'kolors': {
-        'name': 'Kolors Image-to-Image',
-        'endpoint': 'fal-ai/kolors',
-        'type': 'image-to-image'
-    },
-    'lightning': {
-        'name': 'Lightning Models',
-        'endpoint': 'fal-ai/lightning',
-        'type': 'text-to-image'
     }
 }
 
@@ -63,6 +53,7 @@ def generate():
         prompt = data.get('prompt')
         model_id = data.get('model')
         image_file = request.files.get('image')
+        num_images = int(data.get('num_images', 1))  # Default to 1 if not specified
 
         if not prompt:
             return jsonify({'error': 'Prompt is required'}), 400
@@ -72,14 +63,29 @@ def generate():
 
         model = AVAILABLE_MODELS[model_id]
         
-        # Generate image using the selected model
-        result = generate_image(
-            prompt=prompt,
-            model=model,
-            image_file=image_file
-        )
-
-        return jsonify(result)
+        # Limit number of images to generate
+        num_images = min(num_images, 4)  # Maximum 4 images
+        
+        # Track generated images
+        image_urls = []
+        
+        # Generate the requested number of images
+        for _ in range(num_images):
+            # Generate image using the selected model
+            result = generate_image(
+                prompt=prompt,
+                model=model,
+                image_file=image_file if model['type'] == 'image-to-image' else None
+            )
+            
+            if 'image_url' in result:
+                image_urls.append(result['image_url'])
+        
+        # If we couldn't generate any images, return an error
+        if not image_urls:
+            return jsonify({'error': 'Failed to generate any images'}), 500
+            
+        return jsonify({'image_urls': image_urls})
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
