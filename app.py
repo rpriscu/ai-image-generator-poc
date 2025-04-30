@@ -24,13 +24,21 @@ AVAILABLE_MODELS = {
     },
     'recraft': {
         'name': 'Recraft V3',
-        'endpoint': 'fal-ai/recraft',
-        'type': 'text-to-image'
+        'endpoint': 'fal-ai/recraft-v3',
+        'type': 'text-to-image',
+        'params': {
+            'style_name': 'vector-art'
+        }
     },
     'stable_diffusion': {
         'name': 'Stable Diffusion V3',
-        'endpoint': 'fal-ai/stable-diffusion-v3',
-        'type': 'image-to-image'
+        'endpoint': 'fal-ai/stable-diffusion-v3-medium',
+        'type': 'hybrid',
+        'description': 'Supports both text-to-image and image-to-image. When using image-to-image, both prompt and image are required.',
+        'params': {
+            'num_inference_steps': 30,
+            'guidance_scale': 7.5
+        }
     },
     'kolors': {
         'name': 'Kolors Image-to-Image',

@@ -72,15 +72,17 @@
                     <select id="model" name="model" 
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                         {% for model_id, model in models.items() %}
-                        <option value="{{ model_id }}">{{ model.name }}</option>
+                        <option value="{{ model_id }}" data-type="{{ model.type }}" data-description="{{ model.description }}">{{ model.name }}</option>
                         {% endfor %}
                     </select>
+                    <p id="modelDescription" class="mt-1 text-sm text-gray-500"></p>
                 </div>
 
                 <div id="imageUploadContainer" class="hidden">
                     <label for="image" class="block text-sm font-medium text-gray-700">Reference Image</label>
                     <input type="file" id="image" name="image" accept="image/*"
                         class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                    <p class="mt-1 text-sm text-gray-500">Optional for text-to-image models, required for image-to-image models</p>
                 </div>
 
                 <button type="submit" 
@@ -109,6 +111,7 @@
             const form = document.getElementById('generateForm');
             const modelSelect = document.getElementById('model');
             const imageUploadContainer = document.getElementById('imageUploadContainer');
+            const modelDescription = document.getElementById('modelDescription');
             const resultContainer = document.getElementById('result');
             const generatedImage = document.getElementById('generatedImage');
             const errorContainer = document.getElementById('error');
@@ -116,10 +119,23 @@
 
             // Show/hide image upload based on model type
             modelSelect.addEventListener('change', function() {
-                const selectedModel = this.value;
-                const isImageToImage = selectedModel === 'stable_diffusion' || selectedModel === 'kolors';
-                imageUploadContainer.classList.toggle('hidden', !isImageToImage);
+                const selectedOption = this.options[this.selectedIndex];
+                const modelType = selectedOption.dataset.type;
+                const description = selectedOption.dataset.description;
+                
+                // Show description if available
+                modelDescription.textContent = description || '';
+                
+                // Show image upload for image-to-image and hybrid models
+                imageUploadContainer.classList.toggle('hidden', modelType === 'text-to-image');
+                
+                // Update file input required state
+                const imageInput = document.getElementById('image');
+                imageInput.required = modelType === 'image-to-image';
             });
+
+            // Trigger change event to set initial state
+            modelSelect.dispatchEvent(new Event('change'));
 
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();

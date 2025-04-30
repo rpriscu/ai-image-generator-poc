@@ -6,7 +6,7 @@ import base64
 import json
 
 FAL_API_KEY = os.getenv('FAL_API_KEY')
-FAL_API_BASE_URL = 'https://fal.run'  # Standard fal.ai API endpoint
+FAL_API_BASE_URL = 'https://fal.run'
 
 def generate_image(prompt, model, image_file=None):
     """
@@ -30,18 +30,21 @@ def generate_image(prompt, model, image_file=None):
         'prompt': prompt
     }
 
+    # Add model-specific parameters if they exist
+    if 'params' in model:
+        payload.update(model['params'])
+
     # Handle image-to-image models
-    if model['type'] == 'image-to-image' and image_file:
-        # Convert image to base64
+    if (model['type'] == 'image-to-image' or model['type'] == 'hybrid') and image_file:
         image = Image.open(image_file)
         buffered = io.BytesIO()
         image.save(buffered, format="PNG")
         img_str = base64.b64encode(buffered.getvalue()).decode()
-        payload['image'] = img_str
+        payload['image_url'] = f"data:image/png;base64,{img_str}"
 
     try:
-        print(f"Sending request to: {FAL_API_BASE_URL}/{model['endpoint']}")
-        print(f"Payload: {json.dumps(payload, indent=2)}")
+        print(f"Making request to: {FAL_API_BASE_URL}/{model['endpoint']}")
+        print(f"With payload: {json.dumps(payload, indent=2)}")
         
         response = requests.post(
             f'{FAL_API_BASE_URL}/{model["endpoint"]}',
@@ -53,15 +56,32 @@ def generate_image(prompt, model, image_file=None):
         print(f"Response status: {response.status_code}")
         print(f"Response content: {response.text}")
         
-        response.raise_for_status()
+        if not response.ok:
+            error_msg = f"API request failed with status {response.status_code}"
+            try:
+                error_data = response.json()
+                if 'error' in error_data:
+                    error_msg = error_data['error']
+            except:
+                pass
+            raise Exception(error_msg)
+            
         result = response.json()
         
-        # Direct return of the URL from the API response
-        if 'images' in result and len(result['images']) > 0 and 'url' in result['images'][0]:
-            return {'image_url': result['images'][0]['url']}
+        # Handle different response formats
+        if 'images' in result and len(result['images']) > 0:
+            if isinstance(result['images'][0], str):
+                return {'image_url': result['images'][0]}
+            elif isinstance(result['images'][0], dict) and 'url' in result['images'][0]:
+                return {'image_url': result['images'][0]['url']}
+        elif 'image' in result:
+            if isinstance(result['image'], str):
+                return {'image_url': result['image']}
+            elif isinstance(result['image'], dict) and 'url' in result['image']:
+                return {'image_url': result['image']['url']}
         
         print("Unexpected response structure:", result)
-        raise Exception('No image URL in response')
+        raise Exception('No image URL found in response')
 
     except requests.exceptions.RequestException as e:
         print(f"Request failed: {str(e)}")
