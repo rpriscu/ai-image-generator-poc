@@ -1,16 +1,20 @@
 # AI Image Generator
 
-A Flask-based web application that generates images using fal.ai's API. The application supports multiple AI models for both text-to-image and image-to-image generation.
+A Flask-based web application that generates AI images using fal.ai's API. The application features a modern dark-themed UI and supports multiple AI models for text-to-image generation.
+
+![Zemingo Advanced Image Generator](static/images/screenshot.png)
 
 ## Features
 
-- Text-to-image generation
-- Image-to-image generation (with reference image upload)
+- Clean, modern dark UI with Rubik font
+- Text-to-image generation with 4 unique outputs per prompt
 - Support for multiple fal.ai models:
-  - FLUX.1 [dev]
+  - FLUX.1 [dev] (default)
   - Recraft V3
   - Stable Diffusion V3
-  - Kolors Image-to-Image
+- Image download functionality
+- Loading effects with image placeholders
+- Responsive design for various screen sizes
 
 ## Prerequisites
 
@@ -51,9 +55,11 @@ The application will be available at `http://localhost:8080`
 ## Usage
 
 1. Enter a text prompt describing the image you want to generate
-2. Select an AI model from the dropdown
-3. For image-to-image models, upload a reference image (optional)
-4. Click "Generate Image" and wait for the result
+2. Select an AI model (FLUX.1 is selected by default)
+3. Click "Generate" button
+4. Four different images will be generated based on your prompt
+5. Hover over an image to reveal the download button
+6. Click the download button to save the image to your device
 
 ## Project Structure
 
@@ -61,12 +67,26 @@ The application will be available at `http://localhost:8080`
 ai-image-generator-poc/
 ├── app.py                     # Main Flask application
 ├── templates/
-│   └── index.html            # Frontend UI
+│   └── index.html             # Frontend UI template
+├── static/
+│   ├── css/
+│   │   └── style.css          # Custom styling
+│   └── images/
+│       └── ZemingoLogo.png    # App logo
 ├── services/
-│   └── fal_api.py            # fal.ai API interactions
-├── .env                      # Environment variables
-└── requirements.txt          # Project dependencies
+│   └── fal_api.py             # fal.ai API interactions
+├── .env                       # Environment variables
+└── requirements.txt           # Project dependencies
 ```
+
+## Recent Updates
+
+- Added modern dark UI with Zemingo branding
+- Implemented 2x2 image grid layout
+- Added image download functionality
+- Added animated loading placeholder effects
+- Set FLUX.1 as the default model
+- Removed untested models for stability
 
 ## License
 
